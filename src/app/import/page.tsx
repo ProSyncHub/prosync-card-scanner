@@ -352,22 +352,21 @@ export default function ImportPage() {
     );
 
   return (
-    <main className="min-h-screen bg-[#f6f7f9]">
+    <main className="h-screen overflow-hidden bg-[#f6f7f9] flex flex-col">
 
       {/* NAVBAR */}
 
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
+      <div className="bg-white border-b border-gray-200">
 
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
 
           <div>
-            <h1 className="text-3xl font-black text-[#232f3e]">
+            <h1 className="text-2xl font-black text-[#232f3e]">
               Bulk Import
             </h1>
 
-            <p className="text-sm text-gray-500 mt-1">
-              Intelligent Excel &
-              CSV ingestion
+            <p className="text-sm text-gray-500">
+              Smart CSV / Excel ingestion
             </p>
           </div>
 
@@ -380,98 +379,75 @@ export default function ImportPage() {
         </div>
       </div>
 
-      {/* BODY */}
+      {/* TOP SECTION */}
 
-      <div className="max-w-7xl mx-auto px-6 py-10 space-y-8">
+      <div className="max-w-[1800px] w-full mx-auto px-6 pt-5 pb-4 grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-4">
 
-        {/* FORMAT GUIDE */}
+        {/* FORMAT */}
 
-        <div className="bg-[#232f3e] text-white rounded-3xl p-8">
+        <div className="bg-[#232f3e] text-white rounded-3xl p-5">
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
 
-            <div className="w-16 h-16 rounded-3xl bg-white/10 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
 
-              <FileSpreadsheet className="w-8 h-8 text-[#ff9900]" />
+              <FileSpreadsheet className="w-6 h-6 text-[#ff9900]" />
             </div>
 
             <div>
-              <h2 className="text-3xl font-black">
-                Supported Formats
+              <h2 className="text-xl font-black">
+                Supported Columns
               </h2>
 
-              <p className="text-white/70 mt-1">
-                Flexible column
-                mapping supported.
+              <p className="text-xs text-white/60 mt-1">
+                Flexible mapping
               </p>
             </div>
           </div>
 
-          <div className="mt-8 overflow-auto">
+          <div className="mt-4 space-y-2 text-sm">
 
-            <table className="w-full text-sm">
+            <div className="flex justify-between gap-4">
+              <span className="font-bold">
+                Name
+              </span>
 
-              <thead>
-                <tr className="border-b border-white/10 text-left">
-                  <th className="py-3">
-                    Field
-                  </th>
+              <span className="text-white/70 text-right">
+                name, full name
+              </span>
+            </div>
 
-                  <th className="py-3">
-                    Accepted Column Names
-                  </th>
-                </tr>
-              </thead>
+            <div className="flex justify-between gap-4">
+              <span className="font-bold">
+                Phone
+              </span>
 
-              <tbody className="text-white/70">
+              <span className="text-white/70 text-right">
+                phone, mobile,
+                contact
+              </span>
+            </div>
 
-                <tr>
-                  <td className="py-3">
-                    Name
-                  </td>
+            <div className="flex justify-between gap-4">
+              <span className="font-bold">
+                Email
+              </span>
 
-                  <td>
-                    name, full name,
-                    person
-                  </td>
-                </tr>
+              <span className="text-white/70 text-right">
+                email, e-mail
+              </span>
+            </div>
 
-                <tr>
-                  <td className="py-3">
-                    Phone
-                  </td>
+            <div className="flex justify-between gap-4">
+              <span className="font-bold">
+                Company
+              </span>
 
-                  <td>
-                    phone, mobile,
-                    contact, contact
-                    number
-                  </td>
-                </tr>
-
-                <tr>
-                  <td className="py-3">
-                    Email
-                  </td>
-
-                  <td>
-                    email, e-mail,
-                    mail
-                  </td>
-                </tr>
-
-                <tr>
-                  <td className="py-3">
-                    Company
-                  </td>
-
-                  <td>
-                    company, company
-                    name,
-                    organization
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+              <span className="text-white/70 text-right">
+                company,
+                organization
+              </span>
+            </div>
           </div>
         </div>
 
@@ -479,7 +455,7 @@ export default function ImportPage() {
 
         <div
           {...getRootProps()}
-          className={`border-2 border-dashed rounded-3xl p-16 text-center cursor-pointer transition-all ${
+          className={`border-2 border-dashed rounded-3xl px-8 py-6 flex items-center justify-center cursor-pointer transition-all ${
             isDragActive
               ? "border-[#ff9900] bg-orange-50"
               : "border-gray-300 bg-white hover:border-[#ff9900]"
@@ -490,31 +466,35 @@ export default function ImportPage() {
             {...getInputProps()}
           />
 
-          <div className="flex flex-col items-center gap-5">
+          <div className="flex items-center gap-5">
 
-            <div className="w-24 h-24 rounded-[32px] bg-[#232f3e] text-white flex items-center justify-center shadow-xl">
+            <div className="w-16 h-16 rounded-3xl bg-[#232f3e] text-white flex items-center justify-center">
 
-              <Upload className="w-12 h-12" />
+              <Upload className="w-8 h-8" />
             </div>
 
             <div>
-              <h2 className="text-4xl font-black text-[#232f3e]">
-                Drag & Drop
+              <h2 className="text-2xl font-black text-[#232f3e]">
+                Drag & Drop Files
               </h2>
 
-              <p className="text-gray-500 mt-3 text-lg">
-                Upload CSV / XLSX
-                files here
+              <p className="text-gray-500 mt-1">
+                CSV / XLSX supported
               </p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* ACTIONS */}
+      {/* TABLE SECTION */}
+
+      <div className="max-w-[1800px] w-full mx-auto px-6 pb-6 flex-1 flex flex-col min-h-0">
 
         {rows.length > 0 && (
           <>
-            <div className="flex items-center justify-between flex-wrap gap-4">
+            {/* ACTION BAR */}
+
+            <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
 
               <div className="text-sm font-bold text-gray-500 uppercase tracking-widest">
 
@@ -528,7 +508,7 @@ export default function ImportPage() {
                   onClick={
                     addEmptyRow
                   }
-                  className="bg-white border border-gray-200 px-5 py-3 rounded-2xl font-black flex items-center gap-2"
+                  className="bg-white border border-gray-200 px-4 py-2.5 rounded-2xl font-black flex items-center gap-2 text-sm"
                 >
                   <Plus className="w-4 h-4" />
 
@@ -539,7 +519,7 @@ export default function ImportPage() {
                   onClick={
                     toggleAll
                   }
-                  className="bg-white border border-gray-200 px-5 py-3 rounded-2xl font-black flex items-center gap-2"
+                  className="bg-white border border-gray-200 px-4 py-2.5 rounded-2xl font-black flex items-center gap-2 text-sm"
                 >
                   <CheckSquare className="w-4 h-4" />
 
@@ -551,7 +531,7 @@ export default function ImportPage() {
                   onClick={() =>
                     importRows(true)
                   }
-                  className="bg-[#ff9900] text-[#232f3e] px-5 py-3 rounded-2xl font-black flex items-center gap-2"
+                  className="bg-[#ff9900] text-[#232f3e] px-4 py-2.5 rounded-2xl font-black flex items-center gap-2 text-sm"
                 >
                   <CheckSquare className="w-4 h-4" />
 
@@ -563,7 +543,7 @@ export default function ImportPage() {
                   onClick={() =>
                     importRows(false)
                   }
-                  className="bg-[#232f3e] text-white px-5 py-3 rounded-2xl font-black flex items-center gap-2"
+                  className="bg-[#232f3e] text-white px-4 py-2.5 rounded-2xl font-black flex items-center gap-2 text-sm"
                 >
                   <Save className="w-4 h-4" />
 
@@ -574,53 +554,53 @@ export default function ImportPage() {
 
             {/* TABLE */}
 
-            <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden h-[75vh] flex flex-col">
+            <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden flex-1 min-h-0">
 
-              <div className="overflow-auto flex-1">
+              <div className="overflow-auto h-full">
 
                 <table className="w-full min-w-[1600px]">
 
                   <thead className="bg-[#232f3e] text-white sticky top-0 z-10">
 
-                    <tr className="text-left text-sm uppercase tracking-widest">
+                    <tr className="text-left text-xs uppercase tracking-widest">
 
-                      <th className="p-4">
+                      <th className="p-3">
                         Select
                       </th>
 
-                      <th className="p-4">
+                      <th className="p-3">
                         Name
                       </th>
 
-                      <th className="p-4">
+                      <th className="p-3">
                         Company
                       </th>
 
-                      <th className="p-4">
+                      <th className="p-3">
                         Title
                       </th>
 
-                      <th className="p-4">
+                      <th className="p-3">
                         Phone
                       </th>
 
-                      <th className="p-4">
+                      <th className="p-3">
                         Email
                       </th>
 
-                      <th className="p-4">
+                      <th className="p-3">
                         Website
                       </th>
 
-                      <th className="p-4">
+                      <th className="p-3">
                         Address
                       </th>
 
-                      <th className="p-4">
+                      <th className="p-3">
                         Category
                       </th>
 
-                      <th className="p-4">
+                      <th className="p-3">
                         Delete
                       </th>
                     </tr>
@@ -635,7 +615,7 @@ export default function ImportPage() {
                           className="border-t border-gray-100 hover:bg-gray-50"
                         >
 
-                          <td className="p-4">
+                          <td className="p-2">
 
                             <button
                               onClick={() =>
@@ -697,13 +677,13 @@ export default function ImportPage() {
                                           .value
                                       )
                                     }
-                                    className="w-full min-w-[180px] rounded-xl border border-gray-200 px-4 py-3 text-sm bg-white outline-none focus:ring-2 focus:ring-[#232f3e]"
+                                    className="w-full min-w-[160px] rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-[#232f3e]"
                                   />
                                 </td>
                               )
                             )}
 
-                          <td className="p-4">
+                          <td className="p-2">
 
                             <button
                               onClick={() =>
@@ -711,7 +691,7 @@ export default function ImportPage() {
                                   row.id
                                 )
                               }
-                              className="w-10 h-10 rounded-xl bg-red-100 text-red-500 flex items-center justify-center hover:scale-105 transition-all"
+                              className="w-9 h-9 rounded-xl bg-red-100 text-red-500 flex items-center justify-center"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
