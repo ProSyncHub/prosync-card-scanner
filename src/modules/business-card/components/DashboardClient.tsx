@@ -442,7 +442,12 @@ export default function DashboardClient({
             >
                 Scanner
             </Link>
-
+            <Link
+                href="/email"
+                className="flex items-center gap-2 bg-[#232f3e] text-white hover:bg-black hover:scale-[1.02] px-4 py-2 rounded-xl text-sm transition-all font-black uppercase shadow"
+                >
+                Email
+            </Link>
             <Link
                 href="/import"
                 className="flex items-center gap-2 bg-white/10 border border-white/20 text-white hover:bg-white hover:text-[#232f3e] hover:scale-[1.02] px-4 py-2 rounded-xl text-sm transition-all font-black uppercase shadow"

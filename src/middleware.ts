@@ -1,23 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
-export function middleware(req: NextRequest) {
-  const token =
-    req.cookies.get("vault_auth")?.value;
+import { NextResponse } from "next/server";
 
-  const isLoginPage =
-    req.nextUrl.pathname === "/login";
+const PROTECTED_ROUTES = [
+  "/dashboard",
+  "/scanner",
+  "/import",
+  "/email",
+];
 
-  const isAuthenticated = !!token;
+export function middleware(
+  req: NextRequest
+) {
+  const { pathname } = req.nextUrl;
 
-  if (!isAuthenticated && !isLoginPage) {
-    return NextResponse.redirect(
-      new URL("/login", req.url)
+  const isProtected =
+    PROTECTED_ROUTES.some(
+      (route) =>
+        pathname.startsWith(route)
     );
+
+  if (!isProtected) {
+    return NextResponse.next();
   }
 
-  if (isAuthenticated && isLoginPage) {
+  const token =
+    req.cookies.get(
+      "vault_auth"
+    )?.value;
+
+  if (!token) {
     return NextResponse.redirect(
-      new URL("/dashboard", req.url)
+      new URL(
+        "/login",
+        req.url
+      )
     );
   }
 
@@ -25,5 +42,10 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: [
+    "/dashboard/:path*",
+    "/scanner/:path*",
+    "/import/:path*",
+    "/email/:path*",
+  ],
 };
