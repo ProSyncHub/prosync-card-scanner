@@ -2,32 +2,34 @@
 
 import {
   useEffect,
-  useMemo,
   useState,
 } from "react";
 
 import Link from "next/link";
 
 import {
-  Mail,
-  Send,
-  CheckSquare,
-  Square,
   Loader2,
-  History,
-  BarChart3,
   Plus,
   Trash2,
+  Send,
+  Users,
+  Mail,
+  CheckSquare,
+  Square,
+  Pencil,
+  X,
 } from "lucide-react";
 
-type CardType = {
+type CRMCard = {
   _id: string;
 
   category: string;
 
   front: {
     name?: string;
+
     company?: string;
+
     email?: string[];
   };
 
@@ -36,12 +38,30 @@ type CardType = {
   };
 };
 
-export default function EmailPage() {
-  const [cards, setCards] =
-    useState<CardType[]>([]);
+type GroupMember = {
+  id: string;
 
-  const [selected, setSelected] =
+  email: string;
+
+  fields?: {
+    name?: string;
+  };
+};
+
+export default function EmailPage() {
+  const [crmCards, setCrmCards] =
+    useState<CRMCard[]>([]);
+
+  const [groupMembers, setGroupMembers] =
+    useState<GroupMember[]>([]);
+
+  const [selectedMembers, setSelectedMembers] =
     useState<string[]>([]);
+
+  const [
+    selectedContacts,
+    setSelectedContacts,
+    ] = useState<string[]>([]);
 
   const [subject, setSubject] =
     useState("");
@@ -55,50 +75,39 @@ export default function EmailPage() {
   const [sending, setSending] =
     useState(false);
 
-  const [history, setHistory] =
-    useState<any[]>([]);
 
-  const [stats, setStats] =
-    useState<any>(null);
-
-  const [manualEmail, setManualEmail] =
-    useState("");
-
-  const [customEmails, setCustomEmails] =
-    useState<string[]>([]);
-
-  async function fetchCards() {
+  async function fetchData() {
     try {
       setLoading(true);
 
-      const res = await fetch(
-        "/api/cards"
-      );
+      const cardsRes =
+        await fetch("/api/cards");
 
-      const data = await res.json();
+      const cardsData =
+        await cardsRes.json();
 
       const filtered =
-        data.filter(
-          (card: CardType) =>
-            card?.front?.email?.length ||
-            card?.back?.email?.length
+        cardsData.filter(
+          (card: CRMCard) =>
+            card?.front?.email
+              ?.length ||
+            card?.back?.email
+              ?.length
         );
 
-      setCards(filtered);
+      setCrmCards(filtered);
 
-      const historyRes =
+      const membersRes =
         await fetch(
-          "/api/email-history"
+          "/api/mailerlite/group-members"
         );
 
-      const historyData =
-        await historyRes.json();
+      const membersData =
+        await membersRes.json();
 
-      setHistory(
-        historyData.history || []
+      setGroupMembers(
+        membersData.members || []
       );
-
-      setStats(historyData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -107,106 +116,37 @@ export default function EmailPage() {
   }
 
   useEffect(() => {
-    fetchCards();
+    fetchData();
   }, []);
 
-  function toggleSelect(id: string) {
-    setSelected((prev) =>
-      prev.includes(id)
-        ? prev.filter(
-            (item) => item !== id
-          )
-        : [...prev, id]
-    );
-  }
-
-  function toggleSelectAll() {
-    if (
-      selected.length ===
-      cards.length
-    ) {
-      setSelected([]);
-    } else {
-      setSelected(
-        cards.map(
-          (card) => card._id
-        )
-      );
-    }
-  }
-
-  function addManualEmail() {
-    const trimmed =
-      manualEmail.trim();
-
-    if (!trimmed) return;
-
-    if (
-      recipientEmails.includes(
-        trimmed
-      )
-    ) {
-      return;
-    }
-
-    setCustomEmails((prev) => [
-      ...prev,
-      trimmed,
-    ]);
-
-    setManualEmail("");
-  }
-
-  function removeCustomEmail(
-    email: string
-  ) {
-    setCustomEmails((prev) =>
-      prev.filter(
-        (item) => item !== email
-      )
-    );
-  }
-
-  function updateCustomEmail(
-    oldEmail: string,
-    newEmail: string
-  ) {
-    setCustomEmails((prev) =>
-      prev.map((item) =>
-        item === oldEmail
-          ? newEmail
-          : item
-      )
-    );
-  }
-
-  const selectedCards =
-    useMemo(
-      () =>
-        cards.filter((card) =>
-          selected.includes(card._id)
-        ),
-      [cards, selected]
+  const existingEmails =
+    groupMembers.map((m) =>
+      m.email.toLowerCase()
     );
 
-  const recipientEmails = [
-    ...selectedCards.flatMap(
-      (card) => [
+  const availableContacts =
+    crmCards.filter((card) => {
+      const emails = [
         ...(card.front.email || []),
 
         ...(card.back?.email || []),
-      ]
-    ),
+      ];
 
-    ...customEmails,
-  ];
+      return emails.some(
+        (email) =>
+          !existingEmails.includes(
+            email.toLowerCase()
+          )
+      );
+    });
 
-  async function sendEmails() {
+  async function addToGroup(
+    email: string,
+    name: string
+  ) {
     try {
-      setSending(true);
-
-      const res = await fetch(
-        "/api/send-email",
+      await fetch(
+        "/api/mailerlite/add-to-group",
         {
           method: "POST",
 
@@ -216,8 +156,196 @@ export default function EmailPage() {
           },
 
           body: JSON.stringify({
-            recipients:
-              recipientEmails,
+            email,
+            name,
+          }),
+        }
+      );
+
+      fetchData();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function removeFromGroup(
+    subscriberId: string
+  ) {
+    try {
+      await fetch(
+        "/api/mailerlite/remove-from-group",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            subscriberId,
+          }),
+        }
+      );
+
+      fetchData();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function editSubscriber(
+    member: GroupMember
+  ) {
+    const newEmail =
+      prompt(
+        "Edit email",
+        member.email
+      );
+
+    if (!newEmail) return;
+
+    const newName =
+      prompt(
+        "Edit name",
+        member.fields?.name ||
+          ""
+      );
+
+    try {
+      await fetch(
+        "/api/mailerlite/update-subscriber",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            subscriberId:
+              member.id,
+
+            email: newEmail,
+
+            name: newName,
+          }),
+        }
+      );
+
+      fetchData();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function toggleMember(
+    email: string
+  ) {
+    setSelectedMembers((prev) =>
+      prev.includes(email)
+        ? prev.filter(
+            (item) =>
+              item !== email
+          )
+        : [...prev, email]
+    );
+  }
+
+  function toggleAllMembers() {
+    if (
+      selectedMembers.length ===
+      groupMembers.length
+    ) {
+      setSelectedMembers([]);
+    } else {
+      setSelectedMembers(
+        groupMembers.map(
+          (m) => m.email
+        )
+      );
+    }
+  }
+
+  function toggleContact(
+  email: string
+) {
+  setSelectedContacts((prev) =>
+    prev.includes(email)
+      ? prev.filter(
+          (item) =>
+            item !== email
+        )
+      : [...prev, email]
+  );
+}
+
+function toggleAllContacts() {
+  const allEmails =
+    availableContacts
+      .map(
+        (card) =>
+          card.front.email?.[0] ||
+          card.back?.email?.[0]
+      )
+      .filter(Boolean);
+
+  if (
+    selectedContacts.length ===
+    allEmails.length
+  ) {
+    setSelectedContacts([]);
+  } else {
+    setSelectedContacts(
+      allEmails as string[]
+    );
+  }
+}
+
+async function addSelectedContacts() {
+  try {
+    for (const email of selectedContacts) {
+      const card =
+        availableContacts.find(
+          (c) =>
+            c.front.email?.[0] ===
+              email ||
+            c.back?.email?.[0] ===
+              email
+        );
+
+      await addToGroup(
+        email,
+        card?.front.name || ""
+      );
+    }
+
+    setSelectedContacts([]);
+
+    fetchData();
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+  async function sendCampaign() {
+    try {
+      setSending(true);
+
+      const res = await fetch(
+        "/api/mailerlite/send",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            emails:
+              selectedMembers,
 
             subject,
 
@@ -226,36 +354,28 @@ export default function EmailPage() {
         }
       );
 
-      const data = await res.json();
+      const data =
+        await res.json();
 
       if (!res.ok) {
-        alert(
-          data.error ||
-            "Email sending failed"
-        );
+        alert(data.error);
 
         return;
       }
 
       alert(
-        `Emails sent to ${recipientEmails.length} recipients`
+        "Campaign launched"
       );
 
       setSubject("");
 
       setMessage("");
 
-      setSelected([]);
+      setSelectedMembers([]);
 
-      setCustomEmails([]);
-
-      fetchCards();
+      fetchData();
     } catch (error) {
       console.error(error);
-
-      alert(
-        "Failed to send emails"
-      );
     } finally {
       setSending(false);
     }
@@ -264,117 +384,39 @@ export default function EmailPage() {
   return (
     <main className="min-h-screen bg-[#f6f7f9]">
 
-      {/* NAVBAR */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
 
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
-
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
 
           <div>
             <h1 className="text-3xl font-black text-[#232f3e]">
-              Email Campaigns
+              MailerLite CRM
             </h1>
 
-            <p className="text-sm text-gray-500 mt-1">
-              Send outreach emails to scanned contacts.
+            <p className="text-gray-500 mt-1">
+              Lead management &
+              campaign operations
             </p>
           </div>
 
           <Link
             href="/dashboard"
-            className="bg-[#232f3e] text-white px-5 py-3 rounded-2xl font-bold"
+            className="bg-[#232f3e] text-white px-5 py-3 rounded-2xl font-black"
           >
             Dashboard
           </Link>
         </div>
       </div>
 
-      {/* BODY */}
+      <div className="max-w-[1800px] mx-auto p-6 grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-6">
 
-      <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-8">
-
-        {/* LEFT PANEL */}
+        {/* LEFT */}
 
         <div className="space-y-6">
 
-          {/* STATS */}
+          <div className="bg-white rounded-[32px] border border-gray-200 overflow-hidden">
 
-          <div className="bg-white rounded-[32px] border border-gray-200 shadow-sm overflow-hidden">
-
-            <div className="bg-gradient-to-r from-[#232f3e] to-[#37475a] text-white p-6">
-
-              <div className="flex items-center gap-4">
-
-                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center">
-
-                  <BarChart3 className="w-7 h-7 text-[#ff9900]" />
-                </div>
-
-                <div>
-                  <h2 className="text-2xl font-black">
-                    Campaign Stats
-                  </h2>
-
-                  <p className="text-sm text-white/70 mt-1">
-                    Email usage analytics
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 grid grid-cols-2 gap-4">
-
-              <div className="rounded-2xl bg-gray-100 p-4">
-
-                <div className="text-xs uppercase tracking-widest text-gray-400 font-black">
-                  Total Sent
-                </div>
-
-                <div className="mt-2 text-3xl font-black text-[#232f3e]">
-                  {stats?.totalSent || 0}
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-gray-100 p-4">
-
-                <div className="text-xs uppercase tracking-widest text-gray-400 font-black">
-                  Daily Left
-                </div>
-
-                <div className="mt-2 text-3xl font-black text-[#232f3e]">
-                  {stats?.remainingDaily || 0}
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-gray-100 p-4">
-
-                <div className="text-xs uppercase tracking-widest text-gray-400 font-black">
-                  Monthly Left
-                </div>
-
-                <div className="mt-2 text-3xl font-black text-[#232f3e]">
-                  {stats?.remainingMonthly || 0}
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-gray-100 p-4">
-
-                <div className="text-xs uppercase tracking-widest text-gray-400 font-black">
-                  Selected
-                </div>
-
-                <div className="mt-2 text-3xl font-black text-[#232f3e]">
-                  {selected.length}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* COMPOSER */}
-
-          <div className="bg-white rounded-[32px] border border-gray-200 shadow-sm overflow-hidden sticky top-28">
-
-            <div className="bg-gradient-to-r from-[#232f3e] to-[#37475a] text-white p-6">
+            <div className="bg-[#232f3e] text-white p-6">
 
               <div className="flex items-center gap-4">
 
@@ -385,171 +427,75 @@ export default function EmailPage() {
 
                 <div>
                   <h2 className="text-2xl font-black">
-                    Email Composer
+                    Campaign Composer
                   </h2>
 
                   <p className="text-sm text-white/70 mt-1">
-                    Outreach system
+                    Send campaigns to
+                    selected subscribers
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-
-              {/* RECIPIENT COUNT */}
+            <div className="p-6 space-y-5">
 
               <div className="rounded-2xl bg-[#232f3e] text-white p-5">
 
                 <div className="text-xs uppercase tracking-widest text-white/50 font-black">
-                  Active Recipients
+                  Selected Audience
                 </div>
 
                 <div className="mt-2 text-4xl font-black">
-                  {recipientEmails.length}
+                  {
+                    selectedMembers.length
+                  }
                 </div>
               </div>
 
-              {/* MANUAL EMAIL */}
+              <input
+                value={subject}
+                onChange={(e) =>
+                  setSubject(
+                    e.target.value
+                  )
+                }
+                placeholder="Campaign subject"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4 text-sm"
+              />
 
-              <div className="space-y-4">
-
-                <label className="text-xs font-black uppercase tracking-widest text-gray-400">
-                  Manual Recipients
-                </label>
-
-                <div className="flex gap-2">
-
-                  <input
-                    value={manualEmail}
-                    onChange={(e) =>
-                      setManualEmail(
-                        e.target.value
-                      )
-                    }
-                    placeholder="Add email manually"
-                    className="flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4 text-sm font-medium outline-none focus:ring-2 focus:ring-[#232f3e]"
-                  />
-
-                  <button
-                    onClick={
-                      addManualEmail
-                    }
-                    className="px-5 rounded-2xl bg-[#ff9900] text-[#232f3e] font-black flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-
-                    Add
-                  </button>
-                </div>
-
-                {customEmails.length >
-                  0 && (
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
-
-                    {customEmails.map(
-                      (email) => (
-                        <div
-                          key={email}
-                          className="flex items-center gap-2"
-                        >
-
-                          <input
-                            value={email}
-                            onChange={(
-                              e
-                            ) =>
-                              updateCustomEmail(
-                                email,
-                                e.target
-                                  .value
-                              )
-                            }
-                            className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm"
-                          />
-
-                          <button
-                            onClick={() =>
-                              removeCustomEmail(
-                                email
-                              )
-                            }
-                            className="px-4 py-3 rounded-xl bg-red-100 text-red-500 font-black"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* SUBJECT */}
-
-              <div className="space-y-2">
-
-                <label className="text-xs font-black uppercase tracking-widest text-gray-400">
-                  Subject
-                </label>
-
-                <input
-                  value={subject}
-                  onChange={(e) =>
-                    setSubject(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Email subject"
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4 text-sm font-medium outline-none focus:ring-2 focus:ring-[#232f3e]"
-                />
-              </div>
-
-              {/* MESSAGE */}
-
-              <div className="space-y-2">
-
-                <label className="text-xs font-black uppercase tracking-widest text-gray-400">
-                  Message
-                </label>
-
-                <textarea
-                  rows={14}
-                  value={message}
-                  onChange={(e) =>
-                    setMessage(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Write your outreach email..."
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4 text-sm font-medium outline-none resize-none focus:ring-2 focus:ring-[#232f3e]"
-                />
-              </div>
-
-              {/* SEND BUTTON */}
+              <textarea
+                rows={12}
+                value={message}
+                onChange={(e) =>
+                  setMessage(
+                    e.target.value
+                  )
+                }
+                placeholder="Campaign message"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4 text-sm resize-none"
+              />
 
               <button
                 disabled={
                   sending ||
-                  recipientEmails.length ===
-                    0 ||
                   !subject ||
-                  !message
+                  !message ||
+                  selectedMembers.length ===
+                    0
                 }
-                onClick={sendEmails}
-                className="w-full h-[58px] rounded-2xl bg-[#232f3e] hover:bg-black text-white font-black tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl flex items-center justify-center gap-3"
+                onClick={sendCampaign}
+                className="w-full h-[56px] rounded-2xl bg-[#232f3e] text-white font-black flex items-center justify-center gap-3"
               >
                 {sending ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-
-                    Sending Emails...
+                    Launching...
                   </>
                 ) : (
                   <>
                     <Send className="w-5 h-5" />
-
-                    Send Campaign
+                    Launch Campaign
                   </>
                 )}
               </button>
@@ -557,245 +503,257 @@ export default function EmailPage() {
           </div>
         </div>
 
-        {/* RIGHT SIDE */}
+        {/* RIGHT */}
 
-        <div className="space-y-8">
+        <div className="space-y-6">
 
-          {/* RECIPIENTS */}
+          {/* GROUP MEMBERS */}
 
-          <div className="bg-white rounded-[32px] border border-gray-200 shadow-sm overflow-hidden h-[85vh] flex flex-col">
+          <div className="bg-white rounded-[32px] border border-gray-200 overflow-hidden">
 
-            <div className="px-8 py-6 border-b border-gray-200 flex items-center justify-between">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
 
               <div>
-                <h2 className="text-3xl font-black text-[#232f3e]">
-                  Recipients
+                <h2 className="text-2xl font-black text-[#232f3e]">
+                  Business Card Leads
                 </h2>
 
-                <p className="text-gray-500 mt-1">
-                  Contacts with valid email addresses.
+                <p className="text-sm text-gray-500 mt-1">
+                  {selectedMembers.length} selected / {groupMembers.length} total
                 </p>
               </div>
 
-              <div className="text-sm font-bold uppercase tracking-widest text-gray-400">
-                {cards.length} Contacts
-              </div>
+              <button
+                onClick={
+                  toggleAllMembers
+                }
+                className="bg-[#232f3e] text-white px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2"
+              >
+                {selectedMembers.length ===
+                groupMembers.length ? (
+                  <CheckSquare className="w-4 h-4" />
+                ) : (
+                  <Square className="w-4 h-4" />
+                )}
+
+                Select All
+              </button>
             </div>
 
-            {loading ? (
-              <div className="p-20 flex justify-center">
+            <div className="max-h-[500px] overflow-auto">
 
-                <Loader2 className="w-10 h-10 animate-spin text-[#232f3e]" />
-              </div>
-            ) : (
-              <div className="overflow-y-auto overflow-x-auto flex-1">
+              {loading ? (
+                <div className="p-10 flex justify-center">
 
-                <table className="w-full min-w-[900px]">
-
-                  <thead className="bg-[#232f3e] text-white sticky top-0 z-10">
-
-                    <tr className="text-left text-xs uppercase tracking-widest">
-
-                      <th className="p-4">
-
-                        <button
-                          onClick={
-                            toggleSelectAll
-                          }
-                          className="flex items-center gap-2 hover:text-[#ff9900] transition-all"
-                        >
-                          {selected.length ===
-                            cards.length &&
-                          cards.length >
-                            0 ? (
-                            <CheckSquare className="w-5 h-5" />
-                          ) : (
-                            <Square className="w-5 h-5" />
-                          )}
-
-                          Select All
-                        </button>
-                      </th>
-
-                      <th className="p-4">
-                        Name
-                      </th>
-
-                      <th className="p-4">
-                        Company
-                      </th>
-
-                      <th className="p-4">
-                        Email
-                      </th>
-
-                      <th className="p-4">
-                        Category
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-
-                    {cards.map((card) => (
-                      <tr
-                        key={card._id}
-                        className="border-t border-gray-100 hover:bg-gray-50"
-                      >
-
-                        <td className="p-4">
-
-                          <button
-                            onClick={() =>
-                              toggleSelect(
-                                card._id
-                              )
-                            }
-                          >
-                            {selected.includes(
-                              card._id
-                            ) ? (
-                              <CheckSquare className="w-5 h-5 text-[#ff9900]" />
-                            ) : (
-                              <Square className="w-5 h-5 text-gray-300" />
-                            )}
-                          </button>
-                        </td>
-
-                        <td className="p-4 font-semibold">
-                          {card.front.name ||
-                            "Unknown"}
-                        </td>
-
-                        <td className="p-4">
-                          {card.front.company ||
-                            "-"}
-                        </td>
-
-                        <td className="p-4 text-[#232f3e] font-medium">
-                          {[
-                            ...(card.front
-                              .email ||
-                              []),
-
-                            ...(card.back
-                              ?.email ||
-                              []),
-                          ].join(", ")}
-                        </td>
-
-                        <td className="p-4">
-
-                          <span className="bg-gray-100 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                            {card.category}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* HISTORY */}
-
-          <div className="bg-white rounded-[32px] border border-gray-200 shadow-sm overflow-hidden">
-
-            <div className="px-8 py-6 border-b border-gray-200 flex items-center gap-4">
-
-              <div className="w-14 h-14 rounded-2xl bg-[#232f3e] text-white flex items-center justify-center">
-
-                <History className="w-7 h-7 text-[#ff9900]" />
-              </div>
-
-              <div>
-                <h2 className="text-3xl font-black text-[#232f3e]">
-                  Campaign History
-                </h2>
-
-                <p className="text-gray-500 mt-1">
-                  Previously sent campaigns.
-                </p>
-              </div>
-            </div>
-
-            <div className="overflow-auto">
-
-              <table className="w-full min-w-[900px]">
-
-                <thead className="bg-[#232f3e] text-white">
-
-                  <tr className="text-left text-xs uppercase tracking-widest">
-
-                    <th className="p-4">
-                      Subject
-                    </th>
-
-                    <th className="p-4">
-                      Recipients
-                    </th>
-
-                    <th className="p-4">
-                      Status
-                    </th>
-
-                    <th className="p-4">
-                      Date
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-
-                  {history.map((item) => (
-                    <tr
-                      key={item._id}
-                      className="border-t border-gray-100 hover:bg-gray-50"
+                  <Loader2 className="w-8 h-8 animate-spin text-[#232f3e]" />
+                </div>
+              ) : (
+                groupMembers.map(
+                  (member) => (
+                    <div
+                      key={member.id}
+                      className="p-5 border-t border-gray-100 flex items-center justify-between gap-4"
                     >
 
-                      <td className="p-4 font-semibold">
-                        {item.subject}
-                      </td>
+                      <div className="flex items-center gap-4">
 
-                      <td className="p-4">
-                        {
-                          item.recipientCount
+                        <button
+                          onClick={() =>
+                            toggleMember(
+                              member.email
+                            )
+                          }
+                        >
+                          {selectedMembers.includes(
+                            member.email
+                          ) ? (
+                            <CheckSquare className="w-5 h-5 text-[#ff9900]" />
+                          ) : (
+                            <Square className="w-5 h-5 text-gray-300" />
+                          )}
+                        </button>
+
+                        <div>
+
+                          <h3 className="font-black text-[#232f3e]">
+                            {member.fields
+                              ?.name ||
+                              "Unnamed"}
+                          </h3>
+
+                          <p className="text-sm text-gray-500 mt-1">
+                            {
+                              member.email
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+
+                        <button
+                          onClick={() =>
+                            editSubscriber(
+                              member
+                            )
+                          }
+                          className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            removeFromGroup(
+                              member.id
+                            )
+                          }
+                          className="w-10 h-10 rounded-xl bg-red-100 text-red-500 flex items-center justify-center"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                )
+              )}
+            </div>
+          </div>
+
+          {/* AVAILABLE CONTACTS */}
+
+          <div className="bg-white rounded-[32px] border border-gray-200 overflow-hidden">
+
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between gap-4">
+
+              <div className="w-12 h-12 rounded-2xl bg-[#232f3e] text-white flex items-center justify-center">
+
+                <Users className="w-6 h-6 text-[#ff9900]" />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-black text-[#232f3e]">
+                  Available CRM Contacts
+                </h2>
+
+                <p className="text-sm text-gray-500 mt-1">
+                  {selectedContacts.length} selected / {availableContacts.length} total
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+
+                    <button
+                        onClick={toggleAllContacts}
+                        className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2"
+                    >
+                        {selectedContacts.length ===
+                        availableContacts
+                          .map(
+                            (card) =>
+                              card.front.email?.[0] ||
+                              card.back?.email?.[0]
+                          )
+                          .filter(Boolean)
+                          .length ? (
+                        <CheckSquare className="w-4 h-4" />
+                        ) : (
+                        <Square className="w-4 h-4" />
+                        )}
+
+                        Select All
+                    </button>
+
+                    <button
+                        disabled={
+                        selectedContacts.length ===
+                        0
                         }
-                      </td>
+                        onClick={
+                        addSelectedContacts
+                        }
+                        className="bg-[#ff9900] disabled:opacity-50 disabled:cursor-not-allowed text-[#232f3e] px-4 py-2 rounded-xl text-sm font-black flex items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" />
 
-                      <td className="p-4">
+                        Add Selected
+                    </button>
+                </div>
+            </div>
 
-                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                          {item.status}
-                        </span>
-                      </td>
+            <div className="max-h-[700px] overflow-auto">
 
-                      <td className="p-4 text-sm text-gray-500">
-                        {new Date(
-                          item.createdAt
-                        ).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
+              {availableContacts.map(
+                (card) => {
+                  const email =
+                    card.front.email?.[0] ||
+                    card.back?.email?.[0];
 
-                  {history.length ===
-                    0 && (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="p-10 text-center text-gray-400 font-medium"
+                  return (
+                    <div
+                      key={card._id}
+                      className="p-5 border-t border-gray-100 flex items-center justify-between gap-4"
+                    >
+
+                      <div className="flex items-start gap-4">
+
+                        <button
+                          onClick={() =>
+                            toggleContact(
+                              email || ""
+                            )
+                          }
+                          className="mt-1"
+                        >
+                          {selectedContacts.includes(
+                            email || ""
+                          ) ? (
+                            <CheckSquare className="w-5 h-5 text-[#ff9900]" />
+                          ) : (
+                            <Square className="w-5 h-5 text-gray-300" />
+                          )}
+                        </button>
+
+                        <div>
+
+                          <h3 className="font-black text-[#232f3e]">
+                            {card.front.name ||
+                              "Unknown"}
+                          </h3>
+
+                          <p className="text-sm text-gray-500 mt-1">
+                            {email}
+                          </p>
+
+                          <p className="text-xs text-gray-400 mt-2 uppercase tracking-widest">
+                            {card.category}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          addToGroup(
+                            email || "",
+                            card.front.name ||
+                              ""
+                          )
+                        }
+                        className="px-4 py-3 rounded-2xl bg-[#ff9900] text-[#232f3e] font-black flex items-center gap-2"
                       >
-                        No campaigns sent yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                        <Plus className="w-4 h-4" />
+                        Add
+                      </button>
+                    </div>
+                  );
+                }
+              )}
             </div>
           </div>
         </div>
       </div>
+
+
     </main>
   );
 }
