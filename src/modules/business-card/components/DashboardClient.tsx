@@ -1,10 +1,5 @@
 "use client";
 
-export const dynamic =
-  "force-dynamic";
-
-export const revalidate = 0;
-
 import * as XLSX from "xlsx";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -310,6 +305,83 @@ export default function DashboardClient({
     }
   }
 
+  async function bulkDeleteCards() {
+    if (selectedCards.size === 0) {
+        toast.error(
+        "No cards selected"
+        );
+
+        return;
+    }
+
+    const confirmed =
+        confirm(
+        `Delete ${selectedCards.size} selected cards?`
+        );
+
+    if (!confirmed) return;
+
+    const password = prompt(
+        "Enter admin password"
+    );
+
+    if (!password) return;
+
+    try {
+        const res = await fetch(
+        "/api/cards/bulk-delete",
+        {
+            method: "DELETE",
+
+            headers: {
+            "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+            ids: Array.from(
+                selectedCards
+            ),
+
+            password,
+            }),
+        }
+        );
+
+        const data =
+        await res.json();
+
+        if (!res.ok) {
+        throw new Error(
+            data.error ||
+            "Bulk delete failed"
+        );
+        }
+
+        setLocalCards((prev: any[]) =>
+        prev.filter(
+            (card) =>
+            !selectedCards.has(
+                card._id
+            )
+        )
+        );
+
+        setSelectedCards(
+        new Set()
+        );
+
+        toast.success(
+        `${data.deletedCount} cards deleted`
+        );
+    } catch (error: any) {
+        toast.error(
+        error.message ||
+            "Bulk delete failed"
+        );
+    }
+    }
+
   async function saveEdit() {
     if (!editingCard) return;
 
@@ -542,6 +614,23 @@ export default function DashboardClient({
           <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
             {filteredCards.length} records
           </span>
+          
+          {selectedCards.size > 0 && (
+                <button
+                    onClick={
+                    bulkDeleteCards
+                    }
+                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
+                >
+                    <Trash2 className="w-4 h-4" />
+
+                    Delete Selected (
+                    {
+                    selectedCards.size
+                    }
+                    )
+                </button>
+           )}
 
           <button
             onClick={
