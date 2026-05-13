@@ -1,5 +1,10 @@
 "use client";
 
+export const dynamic =
+  "force-dynamic";
+
+export const revalidate = 0;
+
 import * as XLSX from "xlsx";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
