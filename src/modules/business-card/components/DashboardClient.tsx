@@ -115,9 +115,13 @@ export default function DashboardClient({
     selectedCategory,
   ]);
   const router = useRouter();
-  const usedCategories = useMemo(() => {
-    return ["All", ...VALID_CATEGORIES];
-  }, []);
+  const allAvailableCategories = useMemo(() => {
+    const unique = new Set<string>(VALID_CATEGORIES);
+    localCards.forEach((card) => {
+      if (card.category) unique.add(card.category);
+    });
+    return Array.from(unique).sort();
+  }, [localCards]);
 
   function toggleFlip(id: string) {
     if (selectedCards.size > 0) return;
@@ -577,22 +581,23 @@ export default function DashboardClient({
 
           {/* CATEGORY PILLS */}
 
-          <div className="flex flex-wrap gap-2">
-            {usedCategories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() =>
-                  setSelectedCategory(cat)
-                }
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                  selectedCategory === cat
-                    ? "bg-[#ff9900] text-[#232f3e] shadow"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          <div className="flex w-full max-w-sm flex-col">
+            <input
+              type="text"
+              list="filter-category-list"
+              placeholder="Search or select category (leave empty for All)..."
+              value={selectedCategory === "All" ? "" : selectedCategory}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedCategory(val === "" ? "All" : val);
+              }}
+              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#ff9900]"
+            />
+            <datalist id="filter-category-list">
+              {allAvailableCategories.map((cat) => (
+                <option key={cat} value={cat} />
+              ))}
+            </datalist>
           </div>
         </div>
 
@@ -932,32 +937,24 @@ export default function DashboardClient({
                     </p>
                     </div>
 
-                    <select
-                    value={
-                        editingCard.category ||
-                        "Uncategorized"
-                    }
-                    onChange={(e) =>
+                    <input
+                      type="text"
+                      list="edit-category-list"
+                      value={editingCard.category || ""}
+                      onChange={(e) =>
                         setEditingCard({
-                        ...editingCard,
-
-                        category:
-                            e.target.value,
+                          ...editingCard,
+                          category: e.target.value,
                         })
-                    }
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#232f3e]"
-                    >
-                    {VALID_CATEGORIES.map(
-                        (cat) => (
-                        <option
-                            key={cat}
-                            value={cat}
-                        >
-                            {cat}
-                        </option>
-                        )
-                    )}
-                    </select>
+                      }
+                      placeholder="Search or enter category..."
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#232f3e]"
+                    />
+                    <datalist id="edit-category-list">
+                      {allAvailableCategories.map((cat) => (
+                        <option key={cat} value={cat} />
+                      ))}
+                    </datalist>
                 </div>
 
                 {/* SECURITY */}
