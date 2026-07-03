@@ -116,20 +116,8 @@ export default function DashboardClient({
   ]);
   const router = useRouter();
   const usedCategories = useMemo(() => {
-    const unique = new Set<string>();
-
-    localCards.forEach((card) => {
-      if (
-        VALID_CATEGORIES.includes(
-          card.category
-        )
-      ) {
-        unique.add(card.category);
-      }
-    });
-
-    return ["All", ...Array.from(unique)];
-  }, [localCards]);
+    return ["All", ...VALID_CATEGORIES];
+  }, []);
 
   function toggleFlip(id: string) {
     if (selectedCards.size > 0) return;
