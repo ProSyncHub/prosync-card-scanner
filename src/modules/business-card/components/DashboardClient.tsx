@@ -116,11 +116,25 @@ export default function DashboardClient({
   ]);
   const router = useRouter();
   const allAvailableCategories = useMemo(() => {
-    const unique = new Set<string>(VALID_CATEGORIES);
-    localCards.forEach((card) => {
-      if (card.category) unique.add(card.category);
+    const categoryMap = new Map<string, string>();
+    
+    // Add valid categories first to establish preferred casing
+    VALID_CATEGORIES.forEach(cat => {
+      categoryMap.set(cat.toLowerCase().trim(), cat);
     });
-    return Array.from(unique).sort();
+
+    localCards.forEach((card) => {
+      if (card.category) {
+        const trimmed = card.category.trim();
+        const lower = trimmed.toLowerCase();
+        if (lower && !categoryMap.has(lower)) {
+          // Capitalize first letter of custom categories for consistency
+          const formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+          categoryMap.set(lower, formatted);
+        }
+      }
+    });
+    return Array.from(categoryMap.values()).sort();
   }, [localCards]);
 
   function toggleFlip(id: string) {
